@@ -36,6 +36,7 @@
 				sortList: false,
 				reverseList: false,
 				shuffleList: false,
+				showLikes: false,
 				wmode: 'opaque',
 				events: {
 					videoReady: noop,
@@ -163,7 +164,10 @@
 					},
 					videoInfo: function(){
 						return utils.endpoints.base+'videos?id='+settings.videoString+'&key='+apiKey+'&maxResults=50&part=snippet,contentDetails,status,statistics';
-					}
+					},
+					videoLike: function(){
+                        return utils.endpoints.base+'videos/rate?id='+settings.videoString+'&key='+apiKey+'&rating=like';
+                    }
 				},
 				deepExtend: function(destination, source) {
 					var property;
@@ -372,6 +376,10 @@
 									if (video.stats)
 									{
 										list+='</b><span class="ytv-views">'+utils.addCommas(video.stats.viewCount)+' Views</span>';
+									}
+									if (settings.showLikes)
+									{
+										list+='</b><span class="ytv-likes">'+utils.addCommas(video.stats.likeCount)+' Likes</span>';
 									}
 									list += '</div></a></li>';
 								}
