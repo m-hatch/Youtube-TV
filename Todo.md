@@ -1,3 +1,7 @@
+## To-do list @m-hatch
+- [ ] Add OAuth2 token refresh
+- [ ] Add ability to comment in-app
+
 ## To-do list @Giorgio003
 
 - [x] Implement Responsive Design :iphone:
