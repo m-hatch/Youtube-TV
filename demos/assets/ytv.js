@@ -14,6 +14,10 @@
 (function(win, doc) {
 	'use strict';
 	var apiKey = 'AIzaSyA-tnifKTmJoI1G5aL6YM1sI6hYfvXVQRM';
+	var client_id = '169340794041-ik93hv2ejdgjttktega7q4eq9te7sj17.apps.googleusercontent.com';
+	var redirect_uri = window.location.href 
+	var scope = 'https://www.googleapis.com/auth/youtube';
+
 	var YTV = YTV || function(id, opts){
 
 		var noop = function(){},
@@ -180,6 +184,70 @@
 						}
 					}
 					return destination;
+				},
+				getHash: function(){
+					var obj = {};
+					if(window.location.hash) {
+						var hash = window.location.hash.substring(1); 
+						var arr = hash.split('&');
+
+						for (var i=0; i < arr.length; i++) {
+							// separate the keys and the values
+							var a = arr[i].split('=');
+
+							// in case params look like: list[]=thing1&list[]=thing2
+							var paramNum = undefined;
+							var paramName = a[0].replace(/\[\d*\]/, function(v) {
+							paramNum = v.slice(1,-1);
+							return '';
+							});
+
+							// set parameter value (use 'true' if empty)
+							var paramValue = typeof(a[1])==='undefined' ? true : a[1];
+
+							// if parameter name already exists
+							if (obj[paramName]) {
+								// convert value to array (if still string)
+								if (typeof obj[paramName] === 'string') {
+								  	obj[paramName] = [obj[paramName]];
+								}
+								// if no array index number specified...
+								if (typeof paramNum === 'undefined') {
+								  	// put the value on the end of the array
+								  	obj[paramName].push(paramValue);
+								}
+								// if array index number specified...
+								else {
+								  	// put the value at that index number
+								  	obj[paramName][paramNum] = paramValue;
+								}
+							}
+							// if param name doesnt exist yet, set it
+							else {
+								obj[paramName] = paramValue;
+							}
+						}
+					    return obj;
+					} else {
+					  return false;
+					}
+				},
+				validateToken: function(token, success){
+					var url ='https://www.googleapis.com/oauth2/v1/tokeninfo?access_token='+token;
+					
+					utils.ajax.get(url, function(data){
+						if(data.audience === client_id){
+				        	//console.log('valid token');
+				        	success();
+			        	} else {
+				        	//console.log('not valid token');
+				        	utils.isNotValidTokenHandler(token);
+				        }
+					})
+				},
+				isNotValidTokenHandler: function(){
+					alert('Your session has logged out');
+					action.endpoints.logout();
 				}
 			},
 			prepare = {
@@ -412,10 +480,31 @@
 					},
 					
 					loadVideo: function(slug, autoplay){
+						//var tokenRequestUri = 'https://accounts.google.com/o/oauth2/v2/auth?client_id='+client_id+'&redirect_uri='+redirect_uri+'&scope='+scope+'&response_type=token&prompt=consent';
+						var tokenRequestUri = 'https://accounts.google.com/o/oauth2/token?client_id='+client_id+'&redirect_uri='+redirect_uri;
 						var house = settings.element.getElementsByClassName('ytv-video')[0];
 						var counter = settings.element.getElementsByClassName('ytv-video-playerContainer').length;
-						house.innerHTML = '<div id="ytv-video-player'+id+counter+'" class="ytv-video-playerContainer"></div>';
-						
+						var rateHtml = '<div id="ytv-rate">'
+							+'<div id="ytv-auth">'
+							+'<a id="ytv-login" class="no-link-color" href="' + tokenRequestUri + '">Log in</a>'
+							+'<a id="ytv-logout" class="no-link-color hide" href="">Log out</a>'
+							+'</div>'
+							+'<a href="" id="like-btn" class="no-link-color">'
+							+'<span>Like</span><img id="notliked" src="assets/images/like.png" alt="like"><img id="liked" src="assets/images/like2.png" alt="liked" class="hide">'
+							+'<span id="numLikes"></span></a></div>';
+
+						house.innerHTML = rateHtml+'<div id="ytv-video-player'+id+counter+'" class="ytv-video-playerContainer"></div>';
+						utils.events.addEvent( document.getElementById('ytv-logout'), 'click', action.endpoints.logout );
+
+						if(window.location.hash){
+							var token = utils.getHash().access_token;
+							utils.validateToken(token, function(){
+								document.getElementById("ytv-login").className = "no-link-color hide";
+								document.getElementById('ytv-logout').className = "no-link-color";
+								//getRating(slug);
+							});
+						}
+
 						cache.player = new YT.Player('ytv-video-player'+id+counter, {
 							videoId: slug,
 							events: {
@@ -491,6 +580,24 @@
 								prepare.selectedPlaylist(res);
 							});
 						}
+					},
+					logout: function(){
+						var token = getHash().access_token;
+						$.ajax({
+						  type: 'GET',
+						  url: 'https://accounts.google.com/o/oauth2/revoke?token='+token,
+						  async: false,
+						  contentType: "application/json",
+						  dataType: 'jsonp',
+						  success: function(nullResponse) {
+						    // The response is always undefined.
+						    alert('logged out');
+						  },
+						  error: function(e) {
+						    console.log(e);
+						  }
+						});
+						window.location = window.location.href.split("#")[0];
 					}
 				},
 				bindEvents: function(){
