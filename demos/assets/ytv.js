@@ -15,7 +15,7 @@
 	'use strict';
 	var apiKey = 'AIzaSyA-tnifKTmJoI1G5aL6YM1sI6hYfvXVQRM';
 	var client_id = '169340794041-ik93hv2ejdgjttktega7q4eq9te7sj17.apps.googleusercontent.com';
-	var redirect_uri = window.location.href 
+	var redirect_uri = window.location.href.split('?')[0];
 	var scope = 'https://www.googleapis.com/auth/youtube';
 
 	var YTV = YTV || function(id, opts){
@@ -237,10 +237,10 @@
 					
 					utils.ajax.get(url, function(data){
 						if(data.audience === client_id){
-				        	//console.log('valid token');
+				        	console.log('valid token');
 				        	success();
 			        	} else {
-				        	//console.log('not valid token');
+				        	console.log('not valid token');
 				        	utils.isNotValidTokenHandler(token);
 				        }
 					})
@@ -480,8 +480,7 @@
 					},
 					
 					loadVideo: function(slug, autoplay){
-						//var tokenRequestUri = 'https://accounts.google.com/o/oauth2/v2/auth?client_id='+client_id+'&redirect_uri='+redirect_uri+'&scope='+scope+'&response_type=token&prompt=consent';
-						var tokenRequestUri = 'https://accounts.google.com/o/oauth2/token?client_id='+client_id+'&redirect_uri='+redirect_uri;
+						var tokenRequestUri = 'https://accounts.google.com/o/oauth2/v2/auth?client_id='+client_id+'&redirect_uri='+redirect_uri+'&scope='+scope+'&response_type=token&prompt=consent';
 						var house = settings.element.getElementsByClassName('ytv-video')[0];
 						var counter = settings.element.getElementsByClassName('ytv-video-playerContainer').length;
 						var rateHtml = '<div id="ytv-rate">'
@@ -582,22 +581,14 @@
 						}
 					},
 					logout: function(){
-						var token = getHash().access_token;
-						$.ajax({
-						  type: 'GET',
-						  url: 'https://accounts.google.com/o/oauth2/revoke?token='+token,
-						  async: false,
-						  contentType: "application/json",
-						  dataType: 'jsonp',
-						  success: function(nullResponse) {
-						    // The response is always undefined.
+						var token = utils.getHash().access_token;
+						var url = 'https://accounts.google.com/o/oauth2/revoke?token='+token;
+
+						utils.ajax.get(url, function(nullResponse){
+							// The response is always undefined.
 						    alert('logged out');
-						  },
-						  error: function(e) {
-						    console.log(e);
-						  }
-						});
-						window.location = window.location.href.split("#")[0];
+						    //window.location = window.location.href.split("#")[0];
+						})
 					}
 				},
 				bindEvents: function(){
