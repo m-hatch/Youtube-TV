@@ -132,7 +132,10 @@
 									if (Object.prototype.hasOwnProperty.call(JSON.parse(handle.responseText), 'error')){
 										cache.remove(url);
 										var e = JSON.parse(handle.responseText);
-										console.log('Youtube-TV Error: Youtube API Response: '+e.error.errors[0].reason+'\n'+ 'Details: '+e.error.errors[0].message);
+										if (typeof e.error.errors !== 'undefined'){
+											console.log('Youtube-TV Error: Youtube API Response: '+e.error.errors[0].reason+'\n'+ 'Details: '+e.error.errors[0].message);
+										}
+										action.endpoints.reloadNoAuth();
 									}
 								};
 							} else if (win.XMLHttpRequest){ // Modern Browsers
@@ -142,9 +145,12 @@
 								if (handle.readyState === 4 && handle.status === 200){
 									cache.set(url, handle.responseText);
 									fn.call(this, JSON.parse(handle.responseText));
-								} else if (handle.readyState === 4){
+								} else if (handle.readyState === 4){console.log(e);
 									var e = JSON.parse(handle.responseText);
-									console.log('Youtube-TV Error: Youtube API Response: '+e.error.errors[0].reason+'\n'+ 'Details: '+e.error.errors[0].message);
+									if (typeof e.error.errors !== 'undefined'){
+										console.log('Youtube-TV Error: Youtube API Response: '+e.error.errors[0].reason+'\n'+ 'Details: '+e.error.errors[0].message);
+									}
+									action.endpoints.reloadNoAuth();
 								}
 							};
 							handle.open("GET",url,true);
@@ -587,8 +593,10 @@
 						utils.ajax.get(url, function(nullResponse){
 							// The response is always undefined.
 						    alert('logged out');
-						    //window.location = window.location.href.split("#")[0];
 						})
+					},
+					reloadNoAuth: function(){
+						window.location = window.location.href.split("#")[0];
 					}
 				},
 				bindEvents: function(){
