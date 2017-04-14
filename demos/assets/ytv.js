@@ -135,7 +135,7 @@
 										if (typeof e.error.errors !== 'undefined'){
 											console.log('Youtube-TV Error: Youtube API Response: '+e.error.errors[0].reason+'\n'+ 'Details: '+e.error.errors[0].message);
 										}
-										action.endpoints.reloadNoAuth();
+										action.logic.reloadNoAuth();
 									}
 								};
 							} else if (win.XMLHttpRequest){ // Modern Browsers
@@ -145,16 +145,56 @@
 								if (handle.readyState === 4 && handle.status === 200){
 									cache.set(url, handle.responseText);
 									fn.call(this, JSON.parse(handle.responseText));
-								} else if (handle.readyState === 4){console.log(e);
+								} else if (handle.readyState === 4){
 									var e = JSON.parse(handle.responseText);
 									if (typeof e.error.errors !== 'undefined'){
 										console.log('Youtube-TV Error: Youtube API Response: '+e.error.errors[0].reason+'\n'+ 'Details: '+e.error.errors[0].message);
 									}
-									action.endpoints.reloadNoAuth();
+									action.logic.reloadNoAuth();
 								}
 							};
 							handle.open("GET",url,true);
 							handle.send();
+						}
+					},
+					post: function(url, fn, data, headers){
+						if (headers === null){
+							headers = [];
+						}
+						if (cache.exist(url)) {
+							fn.call(this, JSON.parse(cache.get(url)));
+						} else {
+							var handle;
+							if (win.XDomainRequest && !(navigator.appVersion.indexOf("MSIE 8")==-1 || navigator.appVersion.indexOf("MSIE 9")==-1)) { // CORS for IE8,9
+								handle = new XDomainRequest();
+								handle.onload = function(){
+									cache.set(url, handle.responseText);
+									fn.call(this, JSON.parse(handle.responseText));
+									if (Object.prototype.hasOwnProperty.call(JSON.parse(handle.responseText), 'error')){
+										cache.remove(url);
+										var e = JSON.parse(handle.responseText);
+										if (typeof e.error.errors !== 'undefined'){
+											console.log('Youtube-TV Error: Youtube API Response: '+e.error.errors[0].reason+'\n'+ 'Details: '+e.error.errors[0].message);
+										}
+									}
+								};
+							} else if (win.XMLHttpRequest){ // Modern Browsers
+								handle = new XMLHttpRequest(); 
+							}
+							handle.onreadystatechange = function(){
+								if (handle.readyState === 4 && (handle.status === 200 || handle.status === 204)){
+									fn.call(this);
+								} else if (handle.readyState === 4){
+									console.log('Youtube-TV Error: Youtube API Response: '+handle.status+'\n'+ 'Details: '+handle.responseText);
+								}
+							};
+							handle.open("POST",url,true);
+							if(headers.length > 0){
+								for(var i=0; i < headers.length; i++){
+									handle.setRequestHeader(headers[i]['key'], headers[i]['value']);
+								}
+							}
+							handle.send(data);
 						}
 					}
 				},
@@ -177,6 +217,9 @@
 					},
 					videoLike: function(){
                         return utils.endpoints.base+'videos/rate?id='+settings.videoString+'&key='+apiKey+'&rating=like';
+                    },
+                    rateVideo: function(id, rating){
+                    	return utils.endpoints.base+'videos/rate?id='+id+'&key='+apiKey+'&rating='+rating;
                     }
 				},
 				deepExtend: function(destination, source) {
@@ -243,10 +286,10 @@
 					
 					utils.ajax.get(url, function(data){
 						if(data.audience === client_id){
-				        	console.log('valid token');
+				        	//console.log('valid token');
 				        	success();
 			        	} else {
-				        	console.log('not valid token');
+				        	//console.log('not valid token');
 				        	utils.isNotValidTokenHandler(token);
 				        }
 					})
@@ -494,12 +537,19 @@
 							+'<a id="ytv-login" class="no-link-color" href="' + tokenRequestUri + '">Log in</a>'
 							+'<a id="ytv-logout" class="no-link-color hide" href="">Log out</a>'
 							+'</div>'
-							+'<a href="" id="like-btn" class="no-link-color">'
+							+'<a href="" id="like-btn" class="no-link-color" data-rating="like">'
 							+'<span>Like</span><img id="notliked" src="assets/images/like.png" alt="like"><img id="liked" src="assets/images/like2.png" alt="liked" class="hide">'
 							+'<span id="numLikes"></span></a></div>';
 
 						house.innerHTML = rateHtml+'<div id="ytv-video-player'+id+counter+'" class="ytv-video-playerContainer"></div>';
-						utils.events.addEvent( document.getElementById('ytv-logout'), 'click', action.endpoints.logout );
+
+						var logoutBtn = document.getElementById('ytv-logout');
+						var likeBtn = document.getElementById('like-btn');
+						utils.events.addEvent( logoutBtn, 'click', action.endpoints.logout );
+						//utils.events.addEvent( likeBtn, 'click', action.endpoints.rate(slug, likeBtn.dataset.rating, event) );
+						likeBtn.addEventListener("click", function(){
+						    action.endpoints.rate(slug, likeBtn.dataset.rating, event);
+						});
 
 						if(window.location.hash){
 							var token = utils.getHash().access_token;
@@ -535,6 +585,27 @@
 								wmode: settings.wmode
 							}
 						});
+					},
+					reloadNoAuth: function(){
+						window.location = window.location.href.split("#")[0];
+					},
+					showRating: function(rating, id){
+						 var notliked = document.getElementById("notliked");
+						 var liked = document.getElementById("liked");
+						 var likebtn = document.getElementById("like-btn");
+
+						//numLikes(id);
+						if(rating == 'like'){
+							notliked.className = "hide";
+							liked.className = "";
+							likebtn.style.color = "#87CEFA";
+							likebtn.dataset.rating = "none";
+						} else{
+							notliked.className = "";
+							liked.className = "hide";
+							likebtn.style.color = "inherit";
+							likebtn.dataset.rating = "like";
+						}
 					}
 				},
 				
@@ -593,10 +664,24 @@
 						utils.ajax.get(url, function(nullResponse){
 							// The response is always undefined.
 						    alert('logged out');
-						})
+						});
 					},
-					reloadNoAuth: function(){
-						window.location = window.location.href.split("#")[0];
+					rate: function(id, rating, event){
+						event.preventDefault();
+						var rateUrl = utils.endpoints.rateVideo(id, rating);
+						var token = utils.getHash().access_token;
+
+						if(token){
+
+							utils.ajax.post(rateUrl, function(data){
+								action.logic.showRating(rating, id);
+							}, null, [{'key':'Authorization','value':'Bearer ' + token}]);
+
+						} else{
+							window.location = 'https://accounts.google.com/o/oauth2/v2/auth?client_id='+client_id+'&redirect_uri='+redirect_uri+'&scope='+scope+'&response_type=token&prompt=consent&include_granted_scopes=false';
+						}
+
+						return false;
 					}
 				},
 				bindEvents: function(){
