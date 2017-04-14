@@ -119,7 +119,7 @@
 					return null;
 				},
 				ajax: {
-					get: function(url, fn){
+					get: function(url, fn, error){
 						if (cache.exist(url)) {
 							fn.call(this, JSON.parse(cache.get(url)));
 						} else {
@@ -135,7 +135,7 @@
 										if (typeof e.error.errors !== 'undefined'){
 											console.log('Youtube-TV Error: Youtube API Response: '+e.error.errors[0].reason+'\n'+ 'Details: '+e.error.errors[0].message);
 										}
-										action.logic.reloadNoAuth();
+										error();
 									}
 								};
 							} else if (win.XMLHttpRequest){ // Modern Browsers
@@ -146,11 +146,8 @@
 									cache.set(url, handle.responseText);
 									fn.call(this, JSON.parse(handle.responseText));
 								} else if (handle.readyState === 4){
-									var e = JSON.parse(handle.responseText);
-									if (typeof e.error.errors !== 'undefined'){
-										console.log('Youtube-TV Error: Youtube API Response: '+e.error.errors[0].reason+'\n'+ 'Details: '+e.error.errors[0].message);
-									}
-									action.logic.reloadNoAuth();
+									console.log('Youtube-TV Error: Youtube API Response: '+handle.status+'\n'+ 'Details: '+handle.responseText);
+									error();
 								}
 							};
 							handle.open("GET",url,true);
@@ -286,13 +283,13 @@
 					
 					utils.ajax.get(url, function(data){
 						if(data.audience === client_id){
-				        	//console.log('valid token');
+				        	console.log('valid token');
 				        	success();
 			        	} else {
-				        	//console.log('not valid token');
+				        	console.log('not valid token');
 				        	utils.isNotValidTokenHandler(token);
 				        }
-					})
+					}, action.endpoints.logout)
 				},
 				isNotValidTokenHandler: function(){
 					alert('Your session has logged out');
@@ -534,7 +531,7 @@
 						var counter = settings.element.getElementsByClassName('ytv-video-playerContainer').length;
 						var rateHtml = '<div id="ytv-rate">'
 							+'<div id="ytv-auth">'
-							+'<a id="ytv-login" class="no-link-color" href="' + tokenRequestUri + '">Log in</a>'
+							+'<a id="ytv-login" class="no-link-color" href="">Log in</a>'
 							+'<a id="ytv-logout" class="no-link-color hide" href="">Log out</a>'
 							+'</div>'
 							+'<a href="" id="like-btn" class="no-link-color" data-rating="like">'
@@ -543,8 +540,10 @@
 
 						house.innerHTML = rateHtml+'<div id="ytv-video-player'+id+counter+'" class="ytv-video-playerContainer"></div>';
 
+						var loginBtn = document.getElementById('ytv-login');
 						var logoutBtn = document.getElementById('ytv-logout');
 						var likeBtn = document.getElementById('like-btn');
+						utils.events.addEvent( loginBtn, 'click', action.endpoints.login );
 						utils.events.addEvent( logoutBtn, 'click', action.endpoints.logout );
 						//utils.events.addEvent( likeBtn, 'click', action.endpoints.rate(slug, likeBtn.dataset.rating, event) );
 						likeBtn.addEventListener("click", function(){
@@ -657,7 +656,12 @@
 							});
 						}
 					},
+					login: function(){
+						event.preventDefault();
+						window.location = 'https://accounts.google.com/o/oauth2/v2/auth?client_id='+client_id+'&redirect_uri='+redirect_uri+'&scope='+scope+'&response_type=token&prompt=consent&include_granted_scopes=false';
+					},
 					logout: function(){
+						event.preventDefault();
 						var token = utils.getHash().access_token;
 						var url = 'https://accounts.google.com/o/oauth2/revoke?token='+token;
 
@@ -665,6 +669,7 @@
 							// The response is always undefined.
 						    alert('logged out');
 						});
+						action.logic.reloadNoAuth();
 					},
 					rate: function(id, rating, event){
 						event.preventDefault();
@@ -678,7 +683,7 @@
 							}, null, [{'key':'Authorization','value':'Bearer ' + token}]);
 
 						} else{
-							window.location = 'https://accounts.google.com/o/oauth2/v2/auth?client_id='+client_id+'&redirect_uri='+redirect_uri+'&scope='+scope+'&response_type=token&prompt=consent&include_granted_scopes=false';
+							action.endpoints.login();
 						}
 
 						return false;
