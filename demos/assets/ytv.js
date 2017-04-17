@@ -5,7 +5,7 @@
  * Released under the MIT Licence
  * http://opensource.org/licenses/MIT
  *
- * Github:  
+ * Github:
  * Version: 3.0.5
  */
 /*jslint browser: true, undef:true, unused:true, laxbreak:true, loopfunc:true*/
@@ -13,9 +13,7 @@
 
 (function(win, doc) {
 	'use strict';
-	var apiKey = 'AIzaSyA-tnifKTmJoI1G5aL6YM1sI6hYfvXVQRM';
-	var client_id = '169340794041-ik93hv2ejdgjttktega7q4eq9te7sj17.apps.googleusercontent.com';
-	var redirect_uri = window.location.href.split('?')[0];
+	var redirect_uri = window.location.href.split('?')[0].replace(/\/$/, '');
 	var scope = 'https://www.googleapis.com/auth/youtube';
 
 	var YTV = YTV || function(id, opts){
@@ -47,7 +45,7 @@
 					stateChange: noop
 				}
 			},
-			
+
 			cache = {
 				data: {},
 				remove: function (url) {
@@ -144,7 +142,7 @@
 									}
 								};
 							} else if (win.XMLHttpRequest){ // Modern Browsers
-								handle = new XMLHttpRequest(); 
+								handle = new XMLHttpRequest();
 							}
 							handle.onreadystatechange = function(){
 								if (handle.readyState === 4 && handle.status === 200){
@@ -186,7 +184,7 @@
 									}
 								};
 							} else if (win.XMLHttpRequest){ // Modern Browsers
-								handle = new XMLHttpRequest(); 
+								handle = new XMLHttpRequest();
 							}
 							handle.onreadystatechange = function(){
 								if (handle.readyState === 4 && (handle.status === 200 || handle.status === 204)){
@@ -207,6 +205,19 @@
 				},
 				endpoints: {
 					base: 'https://www.googleapis.com/youtube/v3/',
+					oauth: 'https://accounts.google.com/o/oauth2/',
+					oauthV1: 'https://www.googleapis.com/oauth2/v1/',
+					oauthV2: 'https://accounts.google.com/o/oauth2/v2/',
+
+					accessToken: function(token){
+						return utils.endpoints.oauthV1+'tokeninfo?access_token='+token;
+					},
+					userLogin: function(){
+						return utils.endpoints.oauthV2+'auth?client_id='+client_id+'&redirect_uri='+redirect_uri+'&scope='+scope+'&response_type=token&prompt=consent&include_granted_scopes=false';
+					},
+					userLogout: function(token){
+						return utils.endpoints.oauth+'revoke?token='+token;
+					},
 					userInfo: function(){
 						return utils.endpoints.base+'channels?'+settings.cid+'&key='+apiKey+'&part=snippet,contentDetails,statistics';
 					},
@@ -247,7 +258,7 @@
 				getHash: function(){
 					var obj = {};
 					if(window.location.hash) {
-						var hash = window.location.hash.substring(1); 
+						var hash = window.location.hash.substring(1);
 						var arr = hash.split('&');
 
 						for (var i=0; i < arr.length; i++) {
@@ -292,8 +303,8 @@
 					}
 				},
 				validateToken: function(token, success){
-					var url ='https://www.googleapis.com/oauth2/v1/tokeninfo?access_token='+token;
-					
+					var url = utils.endpoints.accessToken(token);
+
 					utils.ajax.get(url, function(data){
 						if(data.audience === client_id){
 				        	console.log('valid token');
@@ -421,7 +432,7 @@
 							list += '</a>';
 						}
 						list += '</ul></div>';
-						
+
 						var lh = settings.element.getElementsByClassName('ytv-list-header')[0],
 							headerLink = lh.children[0];
 						headerLink.href="#";
@@ -446,7 +457,7 @@
 								videos = data.items,
 								first = true,
 								i;
-							settings.channelId = userInfo.items[0].id; 
+							settings.channelId = userInfo.items[0].id;
 							if(settings.currentPlaylist) user.title += ' &middot; '+(settings.currentPlaylist);
 							if (settings.sortList) videos.sort(function(a,b){if(a.snippet.publishedAt > b.snippet.publishedAt) return -1;if(a.snippet.publishedAt < b.snippet.publishedAt) return 1;return 0;});
 							if (settings.reverseList) videos.reverse();
@@ -460,7 +471,7 @@
 									list += '<span><i class="ytv-arrow down"></i>'+(user.title)+'</span>';
 								list += '</a>';
 							list += '</div>';
-							
+
 							list += '<div class="ytv-list-inner"><ul>';
 							for(i=0; i<videos.length; i++){
 								if(videos[i].status.embeddable){
@@ -473,7 +484,7 @@
 										duration: (videos[i].contentDetails.duration),
 										thumb: videos[i].snippet.thumbnails.medium.url
 									};
-									
+
 									var durationString = video.duration.match(/[0-9]+[HMS]/g);
 									var h = 0, m = 0, s = 0, time = '';
 									durationString.forEach(function (duration) {
@@ -488,7 +499,7 @@
 									if (h){ time += h+':';}
 									if (m){ time += m+':';} else { time += '00:';}
 									if (s){ time += s;} else { time += '00';}
-									
+
 									var isFirst = '';
 									if(settings.playId==video.slug){
 										isFirst = ' class="ytv-active"';
@@ -519,27 +530,28 @@
 							var active = settings.element.getElementsByClassName('ytv-active')[0];
 							active.parentNode.parentNode.scrollTop = active.offsetTop;
 							action.logic.loadVideo(first, settings.autoplay);
-							
+
 							if (settings.playlist){
 								utils.ajax.get( utils.endpoints.playlistInfo(settings.playlist), prepare.playlists );
 							} else if(settings.browsePlaylists){
 								utils.ajax.get( utils.endpoints.userPlaylists(), prepare.playlists );
 							}
-							
+
 						});
 					} else console.log ('Youtube-TV Error: Empty video list');
 				}
 			},
 			action = {
-				
+
 				logic: {
-					
+
 					playerStateChange: function(d){
 						console.log(d);
 					},
-					
+
 					loadVideo: function(slug, autoplay){
-						var tokenRequestUri = 'https://accounts.google.com/o/oauth2/v2/auth?client_id='+client_id+'&redirect_uri='+redirect_uri+'&scope='+scope+'&response_type=token&prompt=consent';
+						var token = utils.getHash().access_token;
+						console.log('token' + token)
 						var house = settings.element.getElementsByClassName('ytv-video')[0];
 						var counter = settings.element.getElementsByClassName('ytv-video-playerContainer').length;
 						var rateHtml = '<div id="ytv-rate">'
@@ -592,7 +604,7 @@
 								controls: settings.controls ? 1 : 0,
 								rel: 0,
 								showinfo: 0,
-								iv_load_policy: settings.annotations ? '' : 3, 
+								iv_load_policy: settings.annotations ? '' : 3,
 								autoplay: autoplay ? 1 : 0,
 								theme: settings.playerTheme,
 								wmode: settings.wmode
@@ -643,7 +655,7 @@
 						});
 					}
 				},
-				
+
 				endpoints: {
 					videoClick: function(e){
 						var target = utils.parentUntil(e.target ? e.target : e.srcElement, 'data-ytv');
@@ -676,15 +688,15 @@
 					},
 					playlistClick: function(e){
 						var target = utils.parentUntil(e.target ? e.target : e.srcElement, 'data-ytv-playlist');
-						
+
 						if(target && target.getAttribute('data-ytv-playlist')){
-							
+
 							// Load Playlist
 							utils.events.prevent(e);
-							
+
 							settings.pid = target.getAttribute('data-ytv-playlist');
 							target.children[1].innerHTML = 'Loading...';
-							
+
 							utils.ajax.get( utils.endpoints.playlistInfo(settings.pid), function(res){
 								var lh = settings.element.getElementsByClassName('ytv-list-header')[0];
 								lh.className = lh.className.replace(' ytv-playlist-open', '');
@@ -694,12 +706,12 @@
 					},
 					login: function(){
 						event.preventDefault();
-						window.location = 'https://accounts.google.com/o/oauth2/v2/auth?client_id='+client_id+'&redirect_uri='+redirect_uri+'&scope='+scope+'&response_type=token&prompt=consent&include_granted_scopes=false';
+						window.location = utils.endpoints.userLogin();
 					},
 					logout: function(){
 						event.preventDefault();
 						var token = utils.getHash().access_token;
-						var url = 'https://accounts.google.com/o/oauth2/revoke?token='+token;
+						var url = utils.endpoints.userLogout(token);
 
 						utils.ajax.get(url, function(nullResponse){
 							// The response is always undefined.
@@ -731,7 +743,7 @@
 					utils.events.addEvent( settings.element, 'click', action.endpoints.playlistClick );
 				}
 			},
-			
+
 			initialize = function(id, opts){
 				utils.deepExtend(settings, opts);
 				if(settings.apiKey.length===0){
@@ -775,7 +787,7 @@
 					}
 				}
 			};
-			
+
 		initialize(id, opts);
 	};
 
