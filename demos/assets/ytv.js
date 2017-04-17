@@ -40,7 +40,7 @@
 				sortList: false,
 				reverseList: false,
 				shuffleList: false,
-				showLikes: false,
+				showRating: false,
 				wmode: 'opaque',
 				events: {
 					videoReady: noop,
@@ -119,7 +119,10 @@
 					return null;
 				},
 				ajax: {
-					get: function(url, fn, error){
+					get: function(url, fn, headers, error){
+						if (headers === null || (typeof headers === 'undefined')){
+							headers = [];
+						}
 						if (cache.exist(url)) {
 							fn.call(this, JSON.parse(cache.get(url)));
 						} else {
@@ -135,7 +138,9 @@
 										if (typeof e.error.errors !== 'undefined'){
 											console.log('Youtube-TV Error: Youtube API Response: '+e.error.errors[0].reason+'\n'+ 'Details: '+e.error.errors[0].message);
 										}
-										error();
+										if (typeof error !== 'undefined'){
+											error();
+										}
 									}
 								};
 							} else if (win.XMLHttpRequest){ // Modern Browsers
@@ -151,6 +156,11 @@
 								}
 							};
 							handle.open("GET",url,true);
+							if(headers.length > 0){
+								for(var i=0; i < headers.length; i++){
+									handle.setRequestHeader(headers[i]['key'], headers[i]['value']);
+								}
+							}
 							handle.send();
 						}
 					},
@@ -212,11 +222,14 @@
 					videoInfo: function(){
 						return utils.endpoints.base+'videos?id='+settings.videoString+'&key='+apiKey+'&maxResults=50&part=snippet,contentDetails,status,statistics';
 					},
-					videoLike: function(){
-                        return utils.endpoints.base+'videos/rate?id='+settings.videoString+'&key='+apiKey+'&rating=like';
+					likesCount: function(id){
+                        return utils.endpoints.base+'videos?part=statistics&id='+id+'&key='+apiKey;
                     },
                     rateVideo: function(id, rating){
                     	return utils.endpoints.base+'videos/rate?id='+id+'&key='+apiKey+'&rating='+rating;
+                    },
+                    ratingInfo: function(id){
+                    	return utils.endpoints.base+'videos/getRating?id='+id;
                     }
 				},
 				deepExtend: function(destination, source) {
@@ -289,7 +302,7 @@
 				        	console.log('not valid token');
 				        	utils.isNotValidTokenHandler(token);
 				        }
-					}, action.endpoints.logout)
+					}, null, action.endpoints.logout);
 				},
 				isNotValidTokenHandler: function(){
 					alert('Your session has logged out');
@@ -491,7 +504,7 @@
 									{
 										list+='</b><span class="ytv-views">'+utils.addCommas(video.stats.viewCount)+' Views</span>';
 									}
-									if (settings.showLikes)
+									if (settings.showRating)
 									{
 										list+='</b><span class="ytv-likes">'+utils.addCommas(video.stats.likeCount)+' Likes</span>';
 									}
@@ -539,6 +552,7 @@
 							+'<span id="numLikes"></span></a></div>';
 
 						house.innerHTML = rateHtml+'<div id="ytv-video-player'+id+counter+'" class="ytv-video-playerContainer"></div>';
+						action.logic.numLikes(slug);
 
 						var loginBtn = document.getElementById('ytv-login');
 						var logoutBtn = document.getElementById('ytv-logout');
@@ -555,7 +569,7 @@
 							utils.validateToken(token, function(){
 								document.getElementById("ytv-login").className = "no-link-color hide";
 								document.getElementById('ytv-logout').className = "no-link-color";
-								//getRating(slug);
+								action.logic.getRating(slug);
 							});
 						}
 
@@ -588,12 +602,25 @@
 					reloadNoAuth: function(){
 						window.location = window.location.href.split("#")[0];
 					},
-					showRating: function(rating, id){
-						 var notliked = document.getElementById("notliked");
-						 var liked = document.getElementById("liked");
-						 var likebtn = document.getElementById("like-btn");
+					getRating: function(id){
+						var url = utils.endpoints.ratingInfo(id);
+						var token = utils.getHash().access_token;
 
-						//numLikes(id);
+						if(token){
+							utils.ajax.get(url, function(data){
+								var rating = data.items[0].rating;
+								// console.log("this is my rating: " + rating);
+								action.logic.showRating(rating, id);
+							}, [{'key':'Authorization','value':'Bearer ' + token}]);
+						}
+					},
+					showRating: function(rating, id){
+						var notliked = document.getElementById("notliked");
+						var liked = document.getElementById("liked");
+						var likebtn = document.getElementById("like-btn");
+
+						action.logic.numLikes(id);
+
 						if(rating == 'like'){
 							notliked.className = "hide";
 							liked.className = "";
@@ -605,6 +632,15 @@
 							likebtn.style.color = "inherit";
 							likebtn.dataset.rating = "like";
 						}
+					},
+					numLikes: function(id){
+						var url = utils.endpoints.likesCount(id);
+
+						utils.ajax.get(url, function(data){
+							var count = data.items[0].statistics.likeCount;
+							console.log('likes: '+count);
+							document.getElementById('numLikes').innerHTML = utils.addCommas(count);
+						});
 					}
 				},
 				
