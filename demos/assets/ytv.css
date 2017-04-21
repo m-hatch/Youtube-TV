@@ -35,19 +35,22 @@
 /* Rate */
 #ytv-rate{
 	position: absolute;
+	box-sizing: border-box;
+	font-size: 14px;
+	line-height: 1.42857143;
 	z-index: 100;
 	width: 100%;
-    background-color: rgba(0, 0, 0, .3);
-    color: #fff;
-    padding: 4px 12px;
-    margin-top:-44px;
+	background-color: rgba(0, 0, 0, .3);
+	color: #fff;
+	padding: 4px 12px;
+	margin-top:-44px;
 	-webkit-transition: all .5s ease-in-out;
 	-moz-transition: all .5s ease-in-out;
 	-o-transition: all .5s ease-in-out;
 	transition: all .5s ease-in-out;
 }
 .ytv-video:hover > #ytv-rate {
-    margin-top: -0px;
+	margin-top: -0px;
 }
 #ytv-auth{
 	display: inline-block;
@@ -56,7 +59,7 @@
 	line-height: 1.6;
 }
 .hide {
-    display: none !important; /* from Bootstrap */
+	display: none !important; /* from Bootstrap */
 }
 .no-link-color, 
 .no-link-color:hover, 
@@ -75,6 +78,8 @@
 	line-height: 1.6;
 }
 #like-btn img{
+	box-sizing: border-box;
+	vertical-align: middle;
 	height: 36px;
 	padding: 4px;
 }
@@ -116,6 +121,11 @@
 	border-top: 1px solid rgba(255,255,255,0.1);
 	border-bottom: 1px solid rgba(0,0,0,0.5);
 	border-left: 2px solid transparent;
+}
+.ytv-list a:hover,
+.ytv-list a:focus{
+	color: #FEFEFE;
+	text-decoration: none;
 }
 .ytv-list a b{
 	max-height: 45px;
