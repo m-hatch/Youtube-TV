@@ -13,6 +13,8 @@
 
 (function(win, doc) {
 	'use strict';
+	var apiKey = 'AIzaSyA-tnifKTmJoI1G5aL6YM1sI6hYfvXVQRM';
+	var client_id = '169340794041-ik93hv2ejdgjttktega7q4eq9te7sj17.apps.googleusercontent.com';
 	var redirect_uri = window.location.href.split('?')[0].replace(/\/$/, '');
 	var scope = 'https://www.googleapis.com/auth/youtube';
 
@@ -206,14 +208,12 @@
 				endpoints: {
 					base: 'https://www.googleapis.com/youtube/v3/',
 					oauth: 'https://accounts.google.com/o/oauth2/',
-					oauthV1: 'https://www.googleapis.com/oauth2/v1/',
-					oauthV2: 'https://accounts.google.com/o/oauth2/v2/',
-
-					accessToken: function(token){
-						return utils.endpoints.oauthV1+'tokeninfo?access_token='+token;
+					oauthInfo: 'https://www.googleapis.com/oauth2/',
+					tokenInfo: function(token){
+						return utils.endpoints.oauthInfo+'v2/'+'tokeninfo?access_token='+token;
 					},
 					userLogin: function(){
-						return utils.endpoints.oauthV2+'auth?client_id='+client_id+'&redirect_uri='+redirect_uri+'&scope='+scope+'&response_type=token&prompt=consent&include_granted_scopes=false';
+						return utils.endpoints.oauth+'v2/'+'auth?client_id='+client_id+'&redirect_uri='+redirect_uri+'&scope='+scope+'&response_type=token&prompt=consent&include_granted_scopes=false';
 					},
 					userLogout: function(token){
 						return utils.endpoints.oauth+'revoke?token='+token;
@@ -234,14 +234,14 @@
 						return utils.endpoints.base+'videos?id='+settings.videoString+'&key='+apiKey+'&maxResults=50&part=snippet,contentDetails,status,statistics';
 					},
 					likesCount: function(id){
-                        return utils.endpoints.base+'videos?part=statistics&id='+id+'&key='+apiKey;
-                    },
-                    rateVideo: function(id, rating){
-                    	return utils.endpoints.base+'videos/rate?id='+id+'&key='+apiKey+'&rating='+rating;
-                    },
-                    ratingInfo: function(id){
-                    	return utils.endpoints.base+'videos/getRating?id='+id;
-                    }
+						return utils.endpoints.base+'videos?part=statistics&id='+id+'&key='+apiKey;
+					},
+					rateVideo: function(id, rating){
+						return utils.endpoints.base+'videos/rate?id='+id+'&key='+apiKey+'&rating='+rating;
+					},
+					ratingInfo: function(id){
+						return utils.endpoints.base+'videos/getRating?id='+id;
+					}
 				},
 				deepExtend: function(destination, source) {
 					var property;
@@ -279,17 +279,17 @@
 							if (obj[paramName]) {
 								// convert value to array (if still string)
 								if (typeof obj[paramName] === 'string') {
-								  	obj[paramName] = [obj[paramName]];
+									obj[paramName] = [obj[paramName]];
 								}
 								// if no array index number specified...
 								if (typeof paramNum === 'undefined') {
-								  	// put the value on the end of the array
-								  	obj[paramName].push(paramValue);
+									// put the value on the end of the array
+									obj[paramName].push(paramValue);
 								}
 								// if array index number specified...
 								else {
-								  	// put the value at that index number
-								  	obj[paramName][paramNum] = paramValue;
+									// put the value at that index number
+									obj[paramName][paramNum] = paramValue;
 								}
 							}
 							// if param name doesnt exist yet, set it
@@ -297,22 +297,22 @@
 								obj[paramName] = paramValue;
 							}
 						}
-					    return obj;
+						return obj;
 					} else {
 					  return false;
 					}
 				},
 				validateToken: function(token, success){
-					var url = utils.endpoints.accessToken(token);
+					var url = utils.endpoints.tokenInfo(token);
 
 					utils.ajax.get(url, function(data){
 						if(data.audience === client_id){
-				        	console.log('valid token');
-				        	success();
-			        	} else {
-				        	console.log('not valid token');
-				        	utils.isNotValidTokenHandler(token);
-				        }
+							console.log('valid token');
+							success();
+						} else {
+							console.log('not valid token');
+							utils.isNotValidTokenHandler(token);
+						}
 					}, null, action.endpoints.logout);
 				},
 				isNotValidTokenHandler: function(){
@@ -550,8 +550,6 @@
 					},
 
 					loadVideo: function(slug, autoplay){
-						var token = utils.getHash().access_token;
-						console.log('token' + token)
 						var house = settings.element.getElementsByClassName('ytv-video')[0];
 						var counter = settings.element.getElementsByClassName('ytv-video-playerContainer').length;
 						var rateHtml = '<div id="ytv-rate">'
@@ -569,13 +567,14 @@
 						var loginBtn = document.getElementById('ytv-login');
 						var logoutBtn = document.getElementById('ytv-logout');
 						var likeBtn = document.getElementById('like-btn');
+
+						// Add Event Listeners
 						utils.events.addEvent( loginBtn, 'click', action.endpoints.login );
 						utils.events.addEvent( logoutBtn, 'click', action.endpoints.logout );
-						//utils.events.addEvent( likeBtn, 'click', action.endpoints.rate(slug, likeBtn.dataset.rating, event) );
-						likeBtn.addEventListener("click", function(){
-						    action.endpoints.rate(slug, likeBtn.dataset.rating, event);
+						utils.events.addEvent( likeBtn, 'click', function(){
+							action.endpoints.rate(slug, likeBtn.dataset.rating, event);
 						});
-
+						
 						if(window.location.hash){
 							var token = utils.getHash().access_token;
 							utils.validateToken(token, function(){
@@ -715,7 +714,7 @@
 
 						utils.ajax.get(url, function(nullResponse){
 							// The response is always undefined.
-						    alert('logged out');
+							alert('logged out');
 						});
 						action.logic.reloadNoAuth();
 					},
