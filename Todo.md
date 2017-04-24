@@ -1,12 +1,14 @@
 ## To-do list @m-hatch
 - [ ] Add OAuth2 token refresh
-- [ ] Add OAuth2 URIs to endpoints
+- [x] Add OAuth2 URIs to endpoints
 - [ ] Store token in cookie or session variable
 - [ ] Bugfix: logout/revoke token on expired/invalid token. (400 response from API)
-- [ ] Bugfix: likes count doesn't refresh when liking/unliking
+- [x] Bugfix: likes count doesn't refresh when liking/unliking
 - [ ] Add ability to comment in-app
-- [ ] Fix link:hover color
+- [ ] Add option to force column view
+- [x] Fix link:hover color
 - [ ] Refactor GET and POST ajax functions
+- [ ] Bugfix: Return to selected video after login redirect
 - [ ] Update docs
 
 #### Youtube API v3
