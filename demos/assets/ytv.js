@@ -557,9 +557,9 @@
 							+'<a id="ytv-login" class="no-link-color" href="">Log in</a>'
 							+'<a id="ytv-logout" class="no-link-color hide" href="">Log out</a>'
 							+'</div>'
-							+'<a href="" id="like-btn" class="no-link-color" data-rating="like">'
+							+'<a href="" id="like-btn" class="no-link-color" data-ytv-rating="like" data-ytv-slug="'+slug+'">'
 							+'<span>Like</span><img id="notliked" src="assets/images/like.png" alt="like"><img id="liked" src="assets/images/like2.png" alt="liked" class="hide">'
-							+'<span id="numLikes"></span></a></div>';
+							+'<span id="numLikes" data-ytv-likes-count=""></span></a></div>';
 
 						house.innerHTML = rateHtml+'<div id="ytv-video-player'+id+counter+'" class="ytv-video-playerContainer"></div>';
 						action.logic.numLikes(slug);
@@ -572,7 +572,7 @@
 						utils.events.addEvent( loginBtn, 'click', action.endpoints.login );
 						utils.events.addEvent( logoutBtn, 'click', action.endpoints.logout );
 						utils.events.addEvent( likeBtn, 'click', function(){
-							action.endpoints.rate(slug, likeBtn.dataset.rating, event);
+							action.endpoints.rate(likeBtn.dataset.ytvSlug, likeBtn.dataset.ytvRating, event);
 						});
 						
 						if(window.location.hash){
@@ -620,7 +620,6 @@
 						if(token){
 							utils.ajax.get(url, function(data){
 								var rating = data.items[0].rating;
-								// console.log("this is my rating: " + rating);
 								action.logic.showRating(rating, id);
 							}, [{'key':'Authorization','value':'Bearer ' + token}]);
 						}
@@ -629,28 +628,29 @@
 						var notliked = document.getElementById("notliked");
 						var liked = document.getElementById("liked");
 						var likebtn = document.getElementById("like-btn");
-
-						action.logic.numLikes(id);
-
-						if(rating == 'like'){
+						
+						if(rating === 'like'){
 							notliked.className = "hide";
 							liked.className = "";
 							likebtn.style.color = "#87CEFA";
-							likebtn.dataset.rating = "none";
+							likebtn.dataset.ytvRating = "none";
 						} else{
 							notliked.className = "";
 							liked.className = "hide";
 							likebtn.style.color = "inherit";
-							likebtn.dataset.rating = "like";
+							likebtn.dataset.ytvRating = "like";
 						}
+	
 					},
 					numLikes: function(id){
 						var url = utils.endpoints.likesCount(id);
 
 						utils.ajax.get(url, function(data){
+							var displayCount = document.getElementById('numLikes');
 							var count = data.items[0].statistics.likeCount;
 							console.log('likes: '+count);
-							document.getElementById('numLikes').innerHTML = utils.addCommas(count);
+							displayCount.dataset.ytvLikesCount = count;
+							displayCount.innerHTML = utils.addCommas(count);
 						});
 					}
 				},
@@ -727,6 +727,18 @@
 
 							utils.ajax.post(rateUrl, function(data){
 								action.logic.showRating(rating, id);
+
+								// Update Like Count
+								var displayCount = document.getElementById('numLikes');
+								var videoListCount = document.querySelectorAll('.ytv-active .ytv-likes');
+								var count = Number(displayCount.dataset.ytvLikesCount);
+								
+								count = (rating === 'like') ? ++count : --count;
+								
+								displayCount.dataset.ytvLikesCount = count;
+								displayCount.innerHTML = utils.addCommas(count.toString());
+								videoListCount[0].innerHTML = utils.addCommas(count.toString()) + ' Likes';
+
 							}, null, [{'key':'Authorization','value':'Bearer ' + token}]);
 
 						} else{
