@@ -9,6 +9,7 @@
 - [x] Fix link:hover color
 - [ ] Refactor GET and POST ajax functions
 - [ ] Bugfix: Return to selected video after login redirect
+- [ ] Bugfix: Allow login for multiple players on a page
 - [ ] Update docs
 
 #### Youtube API v3
