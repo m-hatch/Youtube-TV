@@ -648,7 +648,7 @@
 						utils.ajax.get(url, function(data){
 							var displayCount = document.getElementById('numLikes');
 							var count = data.items[0].statistics.likeCount;
-							console.log('likes: '+count);
+							
 							displayCount.dataset.ytvLikesCount = count;
 							displayCount.innerHTML = utils.addCommas(count);
 						});
