@@ -1,5 +1,5 @@
 # YoutubeTV
-**NOW with API Version 3 Support!!**  
+**NOW with API Version 3 and OAuth 2 Support!!**  
 A small, slick, library independent YouTube User/Playlist player
 
 <img src="./demos/assets/images/default.png">
